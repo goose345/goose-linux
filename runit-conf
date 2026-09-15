@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+
+import os
+
+CONFIG = "/etc/runit.conf"
+SV_DIR = "/etc/sv/"
+SERVICE_DIR = "/var/service/"
+
+
+def read_config():
+    config = {}
+
+    with open(CONFIG) as f:
+        for line in f:
+            line = line.strip()
+
+            if not line or line.startswith("#"):
+                continue
+
+            name, value = line.split("=", 1)
+            config[name.strip()] = value.strip().lower()
+
+    return config
+
+
+def enable(service):
+    source = os.path.join(SV_DIR, service)
+    target = os.path.join(SERVICE_DIR, service)
+
+    if not os.path.isdir(source):
+        print(f"Service not found: {source}")
+        return
+
+    if not os.path.exists(target):
+        os.symlink(source, target)
+        print(f"Enabled: {service}")
+
+
+def disable(service):
+    target = os.path.join(SERVICE_DIR, service)
+
+    if os.path.islink(target):
+        os.unlink(target)
+        print(f"Disabled: {service}")
+
+
+def main():
+    config = read_config()
+
+    for service, value in config.items():
+        if value == "yes":
+            enable(service)
+
+        elif value == "no":
+            disable(service)
+
+        else:
+            print(f"Invalid value for {service}: {value}")
+
+
+if __name__ == "__main__":
+    main()
